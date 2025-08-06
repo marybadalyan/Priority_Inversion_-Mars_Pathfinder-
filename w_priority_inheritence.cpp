@@ -75,7 +75,7 @@ int main() {
         mediums.emplace_back(MediumPriorityTask, i);
     }
 
-    std::this_thread::sleep_for(std::chrono::seconds(8));
+    std::this_thread::sleep_for(std::chrono::seconds(2));
     stopMediums = true;
 
     for (auto& m : mediums) m.join();

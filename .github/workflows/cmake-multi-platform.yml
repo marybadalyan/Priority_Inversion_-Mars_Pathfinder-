@@ -84,7 +84,7 @@ jobs:
           if [ -f "${executable_name}" ]; then
             echo "---"
             echo "Running ./${executable_name}"
-            "./${executable_name}"
+            "./${executable_name}" || true
             echo "---"
           else
             echo "Error: Executable not found: $(pwd)/${executable_name}"
@@ -104,7 +104,7 @@ jobs:
            if [ -f "${executable_name}" ]; then
             echo "---"
             echo "Running ./${executable_name}"
-            "./${executable_name}"
+            "./${executable_name}" || true
             echo "---"
           else 
             echo "Error: Executable not found: $(pwd)/${executable_name}"

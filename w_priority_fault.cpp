@@ -54,12 +54,12 @@ int main() {
     }
 
     // Let the medium threads flood for 3 seconds
-    std::this_thread::sleep_for(std::chrono::seconds(3));
+    std::this_thread::sleep_for(std::chrono::seconds(1));
     stopMediums = true;
 
 
     // Wait another 3 seconds to allow low and high to proceed
-    std::this_thread::sleep_for(std::chrono::seconds(3));
+    std::this_thread::sleep_for(std::chrono::seconds(1));
 
     std::cout << "\n[Main] Time limit reached. Terminating program.\n";
     TerminateProcess(GetCurrentProcess(), 0);
