@@ -1,0 +1,96 @@
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            build_type: Release
+            c_compiler: cl
+            cpp_compiler: cl
+          - os: ubuntu-latest
+            build_type: Release
+            c_compiler: gcc
+            cpp_compiler: g++
+          - os: ubuntu-latest
+            build_type: Release
+            c_compiler: clang
+            cpp_compiler: clang++
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set reusable strings
+        id: strings
+        shell: bash
+        run: |
+          echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+
+      - name: Configure CMake
+        run: >
+          cmake -B ${{ steps.strings.outputs.build-output-dir }}
+          -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
+          -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          -S ${{ github.workspace }}
+
+      - name: Build
+        run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
+
+      - name: Test
+        working-directory: ${{ steps.strings.outputs.build-output-dir }}
+        run: ctest --build-config ${{ matrix.build_type }}
+
+      # ... your other steps unchanged ...
+
+      - name: Run Executables and Analyze
+        working-directory: ${{ steps.strings.outputs.build-output-dir }}
+        shell: bash
+        env:
+          RUNNER_OS: ${{ runner.os }}
+          BUILD_TYPE: ${{ matrix.build_type }}
+        run: |
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            executables=("w_priority_inheritence" "w_priority_fault")
+          else
+            executables=("l_priority_inheritence" "l_priority_fault")
+          fi
+          for exe in "${executables[@]}"; do
+            executable_name=""
+            analysis_file=""
+            opt_level=""
+
+            if [ "$exe" == "OP_level_1" ]; then
+              opt_level="-O0"
+              if [ "$RUNNER_OS" == "Windows" ]; then
+                executable_name="${BUILD_TYPE}/${exe}.exe"
+                analysis_file="assembly_Od.txt"
+                opt_level="/Od"
+              else
+                executable_name="${exe}"
+                analysis_file="assembly_O0.txt"
+              fi
+            elif [ "$exe" == "OP_level_2" ]; then
+              opt_level="-O2"
+              if [ "$RUNNER_OS" == "Windows" ]; then
+                executable_name="${BUILD_TYPE}/${exe}.exe"
+              else
+                executable_name="${exe}"
+              fi
+              analysis_file="assembly_O2.txt"
+            fi
+
+            ANALYSIS_PATH="analysis/${analysis_file}"
+
+            echo "--------------------------------------------------"
+            echo "Running ${exe}..."
+
+            if [ -f "${executable_name}" ]; then
+              "./${executable_name}" "${ANALYSIS_PATH}" "${opt_level}"
+            else
+              echo "Error: Executable not found: $(pwd)/${executable_name}"
+              exit 1
+            fi
+          done
