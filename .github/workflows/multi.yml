@@ -61,10 +61,7 @@ jobs:
       - name: Run Executables and Analyze
         working-directory: ${{ steps.strings.outputs.build-output-dir }}
         shell: bash
-        env:
-          # Pass matrix variables as environment variables to the script
-          RUNNER_OS: ${{ runner.os }}
-          BUILD_TYPE: ${{ matrix.build_type }}
+         name: Run Executables and Analyze
         run: |
           # Set the list of executables based on the operating system
           if [ "$RUNNER_OS" == "Windows" ]; then
@@ -80,7 +77,7 @@ jobs:
             if [ "$RUNNER_OS" == "Windows" ]; then
               # On Windows with multi-config generators, executables are in a subdirectory
               # named after the build type (e.g., Release/my_app.exe)
-              executable_name="${BUILD_TYPE}/${exe}.exe"
+              executable_name="${{ matrix.build_type }}/${exe}.exe"
             else
               # On Linux with single-config generators, executables are in the root of the build directory
               executable_name="${exe}"
