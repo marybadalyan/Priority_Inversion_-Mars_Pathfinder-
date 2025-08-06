@@ -1,6 +1,11 @@
 # This workflow builds and tests a C/C++ project on Windows and Ubuntu
 # using different compilers.
 
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 jobs:
   build:
     # The job will run on the operating system specified in the matrix
