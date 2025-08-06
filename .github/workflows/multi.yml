@@ -6,6 +6,7 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+
 jobs:
   build:
     # The job will run on the operating system specified in the matrix
@@ -61,40 +62,42 @@ jobs:
         working-directory: ${{ steps.strings.outputs.build-output-dir }}
         run: ctest --build-config ${{ matrix.build_type }}
 
-      # Step 6: Run the compiled executables
-      # This step demonstrates how to handle platform-specific executable names and paths
-      - name: Run Executables and Analyze
+      # Step 6a: Run Windows executables
+      # This step only runs on Windows runners
+      - name: Run Windows Executables
+        if: runner.os == 'Windows'
         working-directory: ${{ steps.strings.outputs.build-output-dir }}
         shell: bash
         run: |
-          # Set the list of executables based on the operating system
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            executables=("w_priority_inheritence" "w_priority_fault")
-          else
-            executables=("l_priority_inheritence" "l_priority_fault")
-          fi
-
-          # Loop through the list of executables and run them
-          for exe in "${executables[@]}"; do
-            executable_name=""
-            # Construct the full path to the executable, accounting for OS differences
-            if [ "$RUNNER_OS" == "Windows" ]; then
-              # On Windows with multi-config generators, executables are in a subdirectory
-              # named after the build type (e.g., Release/my_app.exe)
-              executable_name="${{ matrix.build_type }}/${exe}.exe"
-            else
-              # On Linux with single-config generators, executables are in the root of the build directory
-              executable_name="${exe}"
-            fi
-
-            # Check if the executable file exists before trying to run it
+          for exe in w_priority_inheritence w_priority_fault; do
+            executable_name="${{ matrix.build_type }}/${exe}.exe"
             if [ -f "${executable_name}" ]; then
               echo "---"
               echo "Running ./${executable_name}"
               "./${executable_name}"
               echo "---"
             else
-              echo "Error: Executable not found at $(pwd)/${executable_name}"
+              echo "Error: Executable not found: $(pwd)/${executable_name}"
+              exit 1
+            fi
+          done
+
+      # Step 6b: Run Linux executables
+      # This step only runs on Linux runners
+      - name: Run Linux Executables
+        if: runner.os == 'Linux'
+        working-directory: ${{ steps.strings.outputs.build-output-dir }}
+        shell: bash
+        run: |
+          for exe in l_priority_inheritence l_priority_fault; do
+            executable_name="${exe}"
+            if [ -f "${executable_name}" ]; then
+              echo "---"
+              echo "Running ./${executable_name}"
+              "./${executable_name}"
+              echo "---"
+            else
+              echo "Error: Executable not found: $(pwd)/${executable_name}"
               exit 1
             fi
           done
