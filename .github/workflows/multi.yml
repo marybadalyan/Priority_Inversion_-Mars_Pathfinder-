@@ -61,7 +61,6 @@ jobs:
       - name: Run Executables and Analyze
         working-directory: ${{ steps.strings.outputs.build-output-dir }}
         shell: bash
-        name: Run Executables and Analyze
         run: |
           # Set the list of executables based on the operating system
           if [ "$RUNNER_OS" == "Windows" ]; then
