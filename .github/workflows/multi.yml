@@ -1,10 +1,16 @@
+# This workflow builds and tests a C/C++ project on Windows and Ubuntu
+# using different compilers.
+
 jobs:
   build:
+    # The job will run on the operating system specified in the matrix
     runs-on: ${{ matrix.os }}
 
     strategy:
+      # Ensures that all jobs in the matrix are attempted, even if one fails
       fail-fast: false
       matrix:
+        # Defines the different configurations to run the job with
         include:
           - os: windows-latest
             build_type: Release
@@ -20,14 +26,19 @@ jobs:
             cpp_compiler: clang++
 
     steps:
-      - uses: actions/checkout@v4
+      # Step 1: Check out the repository's code
+      - name: Check out code
+        uses: actions/checkout@v4
 
+      # Step 2: Set up a reusable variable for the build directory path
       - name: Set reusable strings
         id: strings
         shell: bash
         run: |
           echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
 
+      # Step 3: Configure the CMake project
+      # This step generates the build files for the specific platform and compiler
       - name: Configure CMake
         run: >
           cmake -B ${{ steps.strings.outputs.build-output-dir }}
@@ -36,61 +47,53 @@ jobs:
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
           -S ${{ github.workspace }}
 
+      # Step 4: Build the project using CMake
       - name: Build
         run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
 
+      # Step 5: Run the tests using CTest
       - name: Test
         working-directory: ${{ steps.strings.outputs.build-output-dir }}
         run: ctest --build-config ${{ matrix.build_type }}
 
-      # ... your other steps unchanged ...
-
+      # Step 6: Run the compiled executables
+      # This step demonstrates how to handle platform-specific executable names and paths
       - name: Run Executables and Analyze
         working-directory: ${{ steps.strings.outputs.build-output-dir }}
         shell: bash
         env:
+          # Pass matrix variables as environment variables to the script
           RUNNER_OS: ${{ runner.os }}
           BUILD_TYPE: ${{ matrix.build_type }}
         run: |
+          # Set the list of executables based on the operating system
           if [ "$RUNNER_OS" == "Windows" ]; then
             executables=("w_priority_inheritence" "w_priority_fault")
           else
             executables=("l_priority_inheritence" "l_priority_fault")
           fi
+
+          # Loop through the list of executables and run them
           for exe in "${executables[@]}"; do
             executable_name=""
-            analysis_file=""
-            opt_level=""
-
-            if [ "$exe" == "OP_level_1" ]; then
-              opt_level="-O0"
-              if [ "$RUNNER_OS" == "Windows" ]; then
-                executable_name="${BUILD_TYPE}/${exe}.exe"
-                analysis_file="assembly_Od.txt"
-                opt_level="/Od"
-              else
-                executable_name="${exe}"
-                analysis_file="assembly_O0.txt"
-              fi
-            elif [ "$exe" == "OP_level_2" ]; then
-              opt_level="-O2"
-              if [ "$RUNNER_OS" == "Windows" ]; then
-                executable_name="${BUILD_TYPE}/${exe}.exe"
-              else
-                executable_name="${exe}"
-              fi
-              analysis_file="assembly_O2.txt"
+            # Construct the full path to the executable, accounting for OS differences
+            if [ "$RUNNER_OS" == "Windows" ]; then
+              # On Windows with multi-config generators, executables are in a subdirectory
+              # named after the build type (e.g., Release/my_app.exe)
+              executable_name="${BUILD_TYPE}/${exe}.exe"
+            else
+              # On Linux with single-config generators, executables are in the root of the build directory
+              executable_name="${exe}"
             fi
 
-            ANALYSIS_PATH="analysis/${analysis_file}"
-
-            echo "--------------------------------------------------"
-            echo "Running ${exe}..."
-
+            # Check if the executable file exists before trying to run it
             if [ -f "${executable_name}" ]; then
-              "./${executable_name}" "${ANALYSIS_PATH}" "${opt_level}"
+              echo "---"
+              echo "Running ./${executable_name}"
+              "./${executable_name}"
+              echo "---"
             else
-              echo "Error: Executable not found: $(pwd)/${executable_name}"
+              echo "Error: Executable not found at $(pwd)/${executable_name}"
               exit 1
             fi
           done
